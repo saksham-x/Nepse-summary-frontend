@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="NEPSE stock charts, quotes and indicators" />
+    <title>NEPSE Summary</title>
+    <script>
+      // Apply the saved/OS theme before first paint to avoid a light-to-dark flash.
+      (function () {
+        var theme = 'system';
+        try {
+          theme = (JSON.parse(localStorage.getItem('nepse-summary:preferences')) || {}).theme || 'system';
+        } catch (e) {}
+        if (theme === 'system') theme = matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+        document.documentElement.dataset.theme = theme;
+      })();
+    </script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>
