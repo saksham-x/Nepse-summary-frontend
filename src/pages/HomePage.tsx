@@ -1,8 +1,12 @@
-import { useState } from 'react';
+import { lazy, Suspense, useState } from 'react';
 import { Card, CardHeader } from '@/components/ui/Card';
+import { Skeleton } from '@/components/ui/Spinner';
 import { InstrumentTable } from '@/features/instruments/components/InstrumentTable';
 import { SymbolSearch } from '@/features/instruments/components/SymbolSearch';
 import { useDebouncedValue } from '@/lib/use-debounced-value';
+
+// Carries the charting library and the socket client; load after the page shell.
+const NepseIndexCard = lazy(() => import('@/features/market-index/components/NepseIndexCard').then((m) => ({ default: m.NepseIndexCard })));
 
 export function HomePage() {
   const [filter, setFilter] = useState('');
@@ -17,6 +21,10 @@ export function HomePage() {
         </p>
         <SymbolSearch autoFocus className="mt-5 text-left" />
       </section>
+
+      <Suspense fallback={<Skeleton className="h-[440px]" />}>
+        <NepseIndexCard />
+      </Suspense>
 
       <Card>
         <CardHeader

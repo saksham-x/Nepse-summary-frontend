@@ -49,7 +49,7 @@ export function QuoteCard({ symbol }: { symbol: string }) {
         {noQuote ? (
           <div className="p-4 text-sm text-ink-2">
             <p className="font-semibold text-ink-1">No quote stored yet</p>
-            <p className="mt-1">Run <Code>npm run sync -- --symbols {symbol}</Code> in nepse-api.</p>
+            <p className="mt-1">Run <Code>npm run sync '--' --symbols {symbol}</Code> in nepse-api.</p>
           </div>
         ) : (
           <ErrorState error={error} onRetry={() => void refetch()} compact />
