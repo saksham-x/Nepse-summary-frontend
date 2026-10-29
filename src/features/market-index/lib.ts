@@ -47,3 +47,37 @@ export function applyIndexUpdate(state: IndexState, update: IndexUpdate): IndexS
   if (point.time <= last.time) return { snapshot: update.snapshot, points: [...state.points.slice(0, -1), { ...point, time: last.time }] };
   return { snapshot: update.snapshot, points: [...state.points, point] };
 }
+
+export interface IndexCandle {
+  /** Bucket start, UNIX seconds. */
+  time: number;
+  open: number;
+  high: number;
+  low: number;
+  close: number;
+}
+
+/** Intraday candle width for the index chart. */
+export const INDEX_CANDLE_SECONDS = 5 * 60;
+
+/**
+ * Groups ascending index ticks into fixed-width OHLC candles. Each candle opens
+ * at the previous candle's close (the index has no gaps between buckets), so
+ * a bucket with a single tick still shows the move since the last one.
+ */
+export function toIndexCandles(points: readonly IndexPoint[], bucketSeconds = INDEX_CANDLE_SECONDS): IndexCandle[] {
+  const candles: IndexCandle[] = [];
+  for (const p of points) {
+    const time = p.time - (p.time % bucketSeconds);
+    const last = candles[candles.length - 1];
+    if (last && last.time === time) {
+      last.high = Math.max(last.high, p.value);
+      last.low = Math.min(last.low, p.value);
+      last.close = p.value;
+    } else {
+      const open = last?.close ?? p.value;
+      candles.push({ time, open, high: Math.max(open, p.value), low: Math.min(open, p.value), close: p.value });
+    }
+  }
+  return candles;
+}

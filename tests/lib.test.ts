@@ -4,6 +4,7 @@ import { formatAge, formatPrice, formatSigned, formatTradeDate } from '../src/li
 import { closeChanges, mergePages } from '../src/features/chart/lib/merge';
 import { timeKey, withAlpha } from '../src/features/chart/lib/series-data';
 import { DEFAULT_INDICATORS, enabledIndicators, indicatorParams, validateSettings } from '../src/features/chart/lib/indicators';
+import { toIndexCandles } from '../src/features/market-index/lib';
 import type { Candle } from '../src/types/api';
 
 const c = (time: string, close: number): Candle => ({ time, open: close, high: close, low: close, close, volume: 1, provisional: false });
@@ -75,5 +76,22 @@ describe('indicator settings', () => {
     expect(indicatorParams('macd', DEFAULT_INDICATORS)).toEqual({ fast: 12, slow: 26, signal: 9 });
     expect(indicatorParams('rsi', DEFAULT_INDICATORS)).toEqual({ period: 14 });
     expect(enabledIndicators(DEFAULT_INDICATORS)).toEqual(['sma']);
+  });
+});
+
+describe('toIndexCandles', () => {
+  it('groups ticks into OHLC buckets that open at the previous close', () => {
+    const pts = [
+      { time: 600, value: 10 },
+      { time: 660, value: 12 },
+      { time: 720, value: 9 },
+      { time: 900, value: 11 },
+      { time: 1200, value: 13 },
+    ];
+    expect(toIndexCandles(pts, 300)).toEqual([
+      { time: 600, open: 10, high: 12, low: 9, close: 9 },
+      { time: 900, open: 9, high: 11, low: 9, close: 11 },
+      { time: 1200, open: 11, high: 13, low: 11, close: 13 },
+    ]);
   });
 });

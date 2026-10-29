@@ -6,8 +6,8 @@
  * - Overlay/indicator pair blue + orange passes every check in both modes.
  * - Conventional green/red candles FAIL colour-vision-deficiency separation
  *   (ΔE 4.1, deuteranopia). They are kept as the default because NEPSE users
- *   expect them, but direction is always also encoded by shape: rising candles
- *   are hollow, falling candles are filled. The "colour-blind safe" scheme uses
+ *   expect them (solid TradingView-style bodies); users who need it can switch
+ *   to the "colour-blind safe" scheme, which uses
  *   blue/red, which passes (ΔE 21.6 light / 19.2 dark).
  */
 

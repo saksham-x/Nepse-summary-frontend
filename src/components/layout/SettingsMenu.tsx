@@ -36,7 +36,7 @@ export function SettingsMenu() {
             ]}
           />
           <p className="text-[11px] leading-snug text-ink-3">
-            Rising candles are always hollow and falling candles filled, so direction is readable without colour.
+            Pick Colour-blind safe if green and red are hard to tell apart.
           </p>
         </div>
       </div>

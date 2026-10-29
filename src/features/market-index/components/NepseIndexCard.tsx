@@ -1,9 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import {
-  BaselineSeries,
+  CandlestickSeries,
   ColorType,
   CrosshairMode,
-  LastPriceAnimationMode,
   LineStyle,
   createChart,
   type IChartApi,
@@ -19,13 +18,13 @@ import { chartColors } from '@/features/chart/lib/chart-theme';
 import { withAlpha } from '@/features/chart/lib/series-data';
 import { usePreferences } from '@/features/preferences/preferences-context';
 import { ageSince, formatAge, formatInstantNpt, formatPrice } from '@/lib/format';
-import { NPT_OFFSET_SECONDS, type IndexPoint, type IndexSnapshot } from '../lib';
+import { NPT_OFFSET_SECONDS, toIndexCandles, type IndexCandle, type IndexPoint, type IndexSnapshot } from '../lib';
 import { useNepseIndex, type ConnectionStatus } from '../use-nepse-index';
 
 const CHART_HEIGHT = 300;
 
-/** lightweight-charts shows times as UTC, so points are shifted to read as Nepal time. */
-const toChartPoint = (p: IndexPoint) => ({ time: (p.time + NPT_OFFSET_SECONDS) as UTCTimestamp, value: p.value });
+/** lightweight-charts shows times as UTC, so candles are shifted to read as Nepal time. */
+const toChartCandle = (c: IndexCandle) => ({ ...c, time: (c.time + NPT_OFFSET_SECONDS) as UTCTimestamp });
 
 function LiveBadge({ status, snapshot }: { status: ConnectionStatus; snapshot: IndexSnapshot | null }) {
   if (status === 'connecting') {
@@ -64,10 +63,11 @@ function IndexChart({ points, previousClose }: { points: IndexPoint[]; previousC
   const colors = useMemo(() => chartColors(resolvedTheme, candleScheme), [resolvedTheme, candleScheme]);
   const containerRef = useRef<HTMLDivElement>(null);
   const chartRef = useRef<IChartApi | null>(null);
-  const seriesRef = useRef<ISeriesApi<'Baseline'> | null>(null);
+  const seriesRef = useRef<ISeriesApi<'Candlestick'> | null>(null);
   const priceLineRef = useRef<IPriceLine | null>(null);
-  /** What the series currently holds, to append single points instead of resetting. */
+  /** What the series currently holds, to update the newest candle instead of resetting. */
   const renderedRef = useRef<{ first: number; count: number } | null>(null);
+  const candles = useMemo(() => toIndexCandles(points), [points]);
 
   useEffect(() => {
     const container = containerRef.current;
@@ -80,9 +80,9 @@ function IndexChart({ points, previousClose }: { points: IndexPoint[]; previousC
         fontFamily: 'Inter, ui-sans-serif, system-ui, sans-serif',
         fontSize: 11,
       },
-      grid: { vertLines: { visible: false }, horzLines: { color: colors.grid } },
+      grid: { vertLines: { color: colors.grid }, horzLines: { color: colors.grid } },
       crosshair: {
-        mode: CrosshairMode.Magnet,
+        mode: CrosshairMode.Normal,
         vertLine: { color: colors.crosshair, labelBackgroundColor: colors.crosshair },
         horzLine: { color: colors.crosshair, labelBackgroundColor: colors.crosshair },
       },
@@ -92,16 +92,14 @@ function IndexChart({ points, previousClose }: { points: IndexPoint[]; previousC
       handleScroll: false,
       handleScale: false,
     });
-    seriesRef.current = chart.addSeries(BaselineSeries, {
-      topLineColor: colors.up,
-      topFillColor1: withAlpha(colors.up, 0.28),
-      topFillColor2: withAlpha(colors.up, 0.02),
-      bottomLineColor: colors.down,
-      bottomFillColor1: withAlpha(colors.down, 0.02),
-      bottomFillColor2: withAlpha(colors.down, 0.28),
-      lineWidth: 2,
+    seriesRef.current = chart.addSeries(CandlestickSeries, {
+      upColor: colors.up,
+      downColor: colors.down,
+      borderUpColor: colors.up,
+      borderDownColor: colors.down,
+      wickUpColor: colors.up,
+      wickDownColor: colors.down,
       priceFormat: { type: 'price', precision: 2, minMove: 0.01 },
-      lastPriceAnimation: LastPriceAnimationMode.OnDataUpdate,
     });
     chartRef.current = chart;
     renderedRef.current = null;
@@ -113,39 +111,36 @@ function IndexChart({ points, previousClose }: { points: IndexPoint[]; previousC
     };
   }, [colors]);
 
-  // Baseline: the previous close, so the area is green above it and red below.
+  // Dashed reference line at the previous close.
   useEffect(() => {
     const series = seriesRef.current;
     if (!series) return;
-    const base = previousClose ?? points[0]?.value;
-    if (base === undefined) return;
-    series.applyOptions({ baseValue: { type: 'price', price: base } });
     if (priceLineRef.current) series.removePriceLine(priceLineRef.current);
     priceLineRef.current =
       previousClose !== null
         ? series.createPriceLine({ price: previousClose, color: colors.reference, lineWidth: 1, lineStyle: LineStyle.Dashed, axisLabelVisible: true, title: 'Prev close' })
         : null;
-  }, [previousClose, points, colors]);
+  }, [previousClose, colors]);
 
   useEffect(() => {
     const series = seriesRef.current;
     const chart = chartRef.current;
     if (!series || !chart) return;
     const rendered = renderedRef.current;
-    const last = points[points.length - 1];
-    const sameSeries = rendered && last && points[0]?.time === rendered.first;
-    // One appended point (or the last one replaced): update in place so the line extends smoothly.
-    if (sameSeries && (points.length === rendered.count + 1 || points.length === rendered.count)) {
-      series.update(toChartPoint(last));
+    const last = candles[candles.length - 1];
+    const sameSeries = rendered && last && candles[0]?.time === rendered.first;
+    // Newest candle changed or one was appended: update in place so it ticks live.
+    if (sameSeries && (candles.length === rendered.count + 1 || candles.length === rendered.count)) {
+      series.update(toChartCandle(last));
     } else {
-      series.setData(points.map(toChartPoint));
+      series.setData(candles.map(toChartCandle));
       chart.timeScale().fitContent();
     }
-    renderedRef.current = points.length ? { first: points[0]!.time, count: points.length } : null;
-  }, [points, colors]);
+    renderedRef.current = candles.length ? { first: candles[0]!.time, count: candles.length } : null;
+  }, [candles, colors]);
 
-  const summary = points.length
-    ? `NEPSE Index intraday line with ${points.length} points, latest ${formatPrice(points[points.length - 1]!.value)}`
+  const summary = candles.length
+    ? `NEPSE Index intraday chart with ${candles.length} five-minute candles, latest ${formatPrice(candles[candles.length - 1]!.close)}`
     : 'NEPSE Index chart with no data yet';
   return <div ref={containerRef} role="img" aria-label={summary} style={{ height: CHART_HEIGHT }} className="w-full" />;
 }

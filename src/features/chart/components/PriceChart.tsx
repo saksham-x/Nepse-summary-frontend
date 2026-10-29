@@ -110,8 +110,8 @@ export function PriceChart({ candles, indicators, titles, chartType, viewKey, in
     const price =
       chartType === 'candles'
         ? chart.addSeries(CandlestickSeries, {
-            // Rising candles are hollow, falling candles filled: direction never depends on color alone.
-            upColor: 'rgba(0, 0, 0, 0)',
+            // Solid bodies, TradingView style.
+            upColor: colors.up,
             downColor: colors.down,
             borderUpColor: colors.up,
             borderDownColor: colors.down,
