@@ -9,6 +9,8 @@ export const config = {
   quotePollMs: positiveInt(import.meta.env.VITE_QUOTE_POLL_MS, 60_000),
   /** Socket.IO server origin; empty means this site's origin (the dev/preview proxy forwards /socket.io). */
   socketUrl: (import.meta.env.VITE_SOCKET_URL || '').replace(/\/+$/, ''),
+  /** The portfolio admin app (nepse-admin), linked from the account menu. */
+  adminAppUrl: (import.meta.env.VITE_ADMIN_APP_URL || 'http://localhost:5174').replace(/\/+$/, ''),
   /** Candles per page; the backend allows up to 1000. */
   candlePageSize: 500,
 } as const;

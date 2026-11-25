@@ -1,11 +1,15 @@
 import { Link, Outlet, useLocation } from 'react-router';
 import { ApiStatus } from '@/features/health/components/ApiStatus';
 import { SymbolSearch } from '@/features/instruments/components/SymbolSearch';
+import { UserMenu } from '@/features/auth/components';
 import { SettingsMenu } from './SettingsMenu';
 
 export function AppLayout() {
   const { pathname } = useLocation();
   const onHome = pathname === '/';
+  // Signed-in pages have their own settings page; the chart settings menu is for the public site.
+  const inMemberArea = pathname.startsWith('/app') || pathname.startsWith('/platform-admin');
+  const hideSearch = onHome || inMemberArea || pathname === '/login' || pathname === '/register';
   return (
     <div className="flex min-h-dvh flex-col">
       <header className="sticky top-0 z-20 border-b border-line bg-surface-1/95 backdrop-blur">
@@ -15,10 +19,11 @@ export function AppLayout() {
             <span className="hidden sm:inline">NEPSE Summary</span>
           </Link>
           {/* On phones the search gets its own full-width row below the logo and status. */}
-          {!onHome && <SymbolSearch className="order-last basis-full sm:order-none sm:max-w-md sm:flex-1 sm:basis-auto" />}
+          {!hideSearch && <SymbolSearch className="order-last basis-full sm:order-none sm:max-w-md sm:flex-1 sm:basis-auto" />}
           <div className="ml-auto flex items-center gap-2">
             <ApiStatus />
-            <SettingsMenu />
+            {inMemberArea ? null : <SettingsMenu />}
+            <UserMenu />
           </div>
         </div>
       </header>

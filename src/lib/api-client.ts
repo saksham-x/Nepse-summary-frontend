@@ -51,6 +51,7 @@ export async function apiGet<T>(path: string, options: RequestOptions = {}): Pro
   try {
     res = await fetchImpl(buildUrl(path, options.params), {
       headers: { Accept: 'application/json' },
+      credentials: 'include',
       signal: options.signal,
     });
   } catch (err) {
@@ -76,3 +77,39 @@ export async function apiGet<T>(path: string, options: RequestOptions = {}): Pro
 
 /** Path segment for a symbol; NEPSE symbols may contain '/' (e.g. NICD83/84). */
 export const symbolPath = (symbol: string) => encodeURIComponent(symbol);
+
+/**
+ * Sends a write (POST/PATCH/DELETE) to nepse-api. The session cookie goes along
+ * because the API is on this site's origin (directly or through the dev proxy).
+ * Returns the response's `data`, or undefined for 204.
+ */
+export async function apiSend<T = unknown>(method: 'POST' | 'PATCH' | 'PUT' | 'DELETE', path: string, body?: unknown): Promise<T> {
+  const isForm = typeof FormData !== 'undefined' && body instanceof FormData;
+  let res: Response;
+  try {
+    res = await fetch(buildUrl(path), {
+      method,
+      credentials: 'include',
+      headers: { Accept: 'application/json', ...(body !== undefined && !isForm ? { 'Content-Type': 'application/json' } : {}) },
+      body: body === undefined ? undefined : isForm ? (body as FormData) : JSON.stringify(body),
+    });
+  } catch {
+    throw new ApiError(0, CLIENT_ERROR.NETWORK_ERROR, 'Could not reach the API server');
+  }
+  if (res.status === 204) return undefined as T;
+  let json: unknown;
+  try {
+    json = await res.json();
+  } catch {
+    throw new ApiError(res.status, CLIENT_ERROR.INVALID_RESPONSE, `The API returned a non-JSON response (HTTP ${res.status})`);
+  }
+  if (res.ok) return (json as { data: T }).data;
+  if (isErrorBody(json)) {
+    const { code, message, requestId, details } = json.error;
+    throw new ApiError(res.status, code, message, requestId, details);
+  }
+  throw new ApiError(res.status, CLIENT_ERROR.INVALID_RESPONSE, `Unexpected API response (HTTP ${res.status})`);
+}
+
+/** GET returning just `data`. */
+export const apiData = async <T>(path: string, options: RequestOptions = {}): Promise<T> => (await apiGet<{ data: T }>(path, options)).data;

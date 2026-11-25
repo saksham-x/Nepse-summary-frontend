@@ -43,6 +43,7 @@ Start the backend first (`npm run dev` in `nepse-api`). The header badge shows w
 | `VITE_API_BASE_URL` | `/api/v1` | Where the browser sends API calls. Keep the default to use the proxy, or set a full URL for a separately hosted API. |
 | `VITE_API_PROXY_TARGET` | `http://localhost:3000` | Backend address for the dev/preview proxy |
 | `VITE_QUOTE_POLL_MS` | `60000` | Quote polling interval while the tab is visible |
+| `VITE_ADMIN_APP_URL` | `http://localhost:5174` | The nepse-admin portal, linked from the account menu |
 
 `VITE_*` values are baked into the build at build time, so rebuild after changing them.
 
@@ -82,6 +83,29 @@ Start the backend first (`npm run dev` in `nepse-api`). The header badge shows w
 - **Indicator lines.** These use a validated blue/orange pair. Volume, RSI and MACD each get their own pane instead of a second y-axis.
 - **Themes.** Light and dark themes follow the OS by default and can be changed in *Settings*. Preferences are stored per browser.
 - **Hover legend.** The legend over the chart shows the exact values under the crosshair and names every series.
+
+## Member area and platform admin
+
+The market-data pages above stay public. Signed-in features live under their own routes and load as separate chunks, so visitors don't download them. How the money works (units, NAV, late fees) is described in nepse-api's README under *Accounts and portfolios*.
+
+| Route | What it is |
+| --- | --- |
+| `/login`, `/register` | Sign in or create an account. A platform admin gets a **Sign in as admin** button after logging in. |
+| `/app` | Member home: one card per portfolio (group, solo or managed) with its value and your share; your net worth; alerts (payment due or late, deposit approved or rejected, new trades, exit updates); invitations to accept. |
+| `/app/portfolios/:id` | **Dashboard:** group totals (invested, value, profit in Rs and %, cash, NAV), your numbers (contributed, units, ownership, share value, returns), a growth-over-time chart (group, or just you), and a breakdown by asset type or sector. |
+| `…/deposit` | **Pay this month:** amount (late fee included), due date, and the group's bank or eSewa details. Upload a screenshot and follow it through pending, approved, or rejected with the reason. Full history with PDF receipts. |
+| `…/contributions` | Your monthly paid / pending / due / late calendar, plus the group tracker if the admin shares it. |
+| `…/holdings`, `…/holdings/:id` | What the group owns, with quantity, average buy price, current price and P/L. Each asset has its own page with notes, documents and its transactions. |
+| `…/activity` | Read-only feed of buys, sells, dividends, bonus and right shares and fees, with the admin's notes. Reversed entries are shown crossed out. |
+| `…/statements` | Monthly statements as PDF. |
+| `…/exit` | Payout estimate at the current NAV, the exit request, and its status. |
+| `…/members` | Who is in the group and their roles. Units and shares appear only if the admin allows it. You can also report a problem to the platform team here. |
+| `/app/settings` | Profile, password, notification preferences, language (English / नेपाली), dark mode. Saved to your account. |
+| `/platform-admin` | Platform admins only, after **Sign in as admin**. Usage stats (users, portfolios, AUM), users (suspend, delete, grant admin), portfolios (suspend, delete, **view as admin** opens nepse-admin read-only), NEPSE price sync and corrections, abuse reports, the global audit log, and a placeholder for plans and billing. |
+
+Admins and leaders also get an **Admin portal** link to the separate [nepse-admin](../nepse-admin) app, set by `VITE_ADMIN_APP_URL` (default `http://localhost:5174`). Both apps call the API through their own dev proxy on `localhost`, and browsers share cookies across ports, so signing in on one signs you in on the other.
+
+The member area's text is in `src/features/i18n/messages.ts`. TypeScript checks that the English and Nepali sets have the same keys. Platform admin pages are English only.
 
 ---
 

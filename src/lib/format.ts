@@ -72,3 +72,30 @@ export function formatAge(seconds: number): string {
 export function ageSince(iso: string, now: number = Date.now()): number {
   return Math.max(0, (now - new Date(iso).getTime()) / 1000);
 }
+
+/** Money in NPR: 'Rs 1,23,456.00'. */
+export function formatRs(value: number | null | undefined): string {
+  return value === null || value === undefined ? '—' : `Rs ${priceFmt.format(value)}`;
+}
+
+/** Signed money with a real minus sign: '+Rs 120.00' / '−Rs 45.50'. */
+export function formatRsSigned(value: number | null | undefined): string {
+  if (value === null || value === undefined) return '—';
+  const s = `Rs ${priceFmt.format(Math.abs(value))}`;
+  return value > 0 ? `+${s}` : value < 0 ? `−${s}` : s;
+}
+
+const unitFmt = new Intl.NumberFormat('en-IN', { minimumFractionDigits: 4, maximumFractionDigits: 4 });
+export const formatUnits = (value: number | null | undefined) => (value === null || value === undefined ? '—' : unitFmt.format(value));
+
+/** '2026-11' → 'Nov 2026'. */
+export function formatMonth(period: string): string {
+  const [y, m] = period.split('-');
+  return `${MONTHS[Number(m) - 1] ?? m} ${y}`;
+}
+
+/** ISO instant → '12 Jun 2024' in Nepal time. */
+export function formatDateNpt(iso: string | null | undefined): string {
+  if (!iso) return '—';
+  return new Intl.DateTimeFormat('en-GB', { timeZone: 'Asia/Kathmandu', day: 'numeric', month: 'short', year: 'numeric' }).format(new Date(iso));
+}

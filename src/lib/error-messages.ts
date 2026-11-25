@@ -27,6 +27,26 @@ export function describeError(error: unknown): FriendlyError {
       return { title: 'Refresh failed', description: 'NEPSE responded with data that could not be used.' };
     case 'DATABASE_ERROR':
       return { title: 'Database unavailable', description: 'The backend cannot reach its database right now.' };
+    case 'INVALID_CREDENTIALS':
+      return { title: 'Could not sign in', description: error.message };
+    case 'UNAUTHENTICATED':
+      return { title: 'Signed out', description: 'Please log in again.' };
+    case 'EMAIL_TAKEN':
+      return { title: 'Email already registered', description: 'Log in instead, or use another email.' };
+    case 'ACCOUNT_SUSPENDED':
+      return { title: 'Account suspended', description: 'Contact the platform team if you think this is a mistake.' };
+    case 'FORBIDDEN':
+    case 'READ_ONLY':
+    case 'PORTFOLIO_SUSPENDED':
+    case 'ADMIN_SESSION_REQUIRED':
+      return { title: 'Not allowed', description: error.message };
+    case 'NOT_FOUND':
+      return { title: 'Not found', description: error.message };
+    case 'INVALID_STATE':
+      return { title: "Can't do that right now", description: error.message };
+    case 'FILE_REJECTED':
+    case 'PAYLOAD_TOO_LARGE':
+      return { title: 'File not accepted', description: error.message };
     case 'RATE_LIMITED':
       return { title: 'Too many requests', description: 'Please wait a moment before trying again.' };
     case 'VALIDATION_ERROR':
